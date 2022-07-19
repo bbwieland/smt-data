@@ -1,3 +1,6 @@
+library(tidyverse)
+library(dplyr)
+
 player_pos <- read_csv("player_pos.csv")
 ball_pos <- read_csv("ball_pos.csv")
 game_events <- read_csv("game_events.csv")
@@ -13,76 +16,6 @@ nrow(player_pos)
 
 #outfielder positions
 outfielder <- c(7, 8, 9)
-
-#get play counts for all outfielders
-rf <- game_info %>% 
-  select(right_field) %>% 
-  rename("outfielder" = right_field)
-
-cf <- game_info %>% 
-  select(center_field) %>% 
-  rename("outfielder" = center_field)
-
-lf <- game_info %>% 
-  select(left_field) %>% 
-  rename("outfielder" = left_field)
-
-#join each position to one df
-ofs <- rbind(rf, cf, lf)
-
-#how many plays for each outfielder
-of_play_count <- ofs %>% 
-  group_by(outfielder) %>% 
-  summarise(count = n()) %>% 
-  arrange(desc(count))
-
-View(of_play_count)
-
-#focus on a specific player
-player1 <- as.numeric(of_play_count[1,1])
-
-#which games did they play in
-player1_game_info <- game_info %>% 
-  filter(left_field == player1 | center_field == player1 | right_field == player1)
-
-games_unique <- unique(player1_game_info$game_str)
-
-#find the plays that include catches (looking for player_pos == 10, event_code == 4, and ends with a 7/8/9 and a 2)
-#current df has start and end of play, and ball positioning
-#probably left join this to player_pos as next step
-x <- game_events %>% 
-  filter((event_code == 2 & player_position %in% outfielder & lag(event_code) == 4 & lag(player_position) == 10) | 
-           (event_code == 4 & player_position == 10 & lead(event_code) == 2 & lead(player_position) %in% outfielder)) %>% 
-  #get a consistent play index
-  mutate(CatchPlayIndex = rep(1:(2352/2), each = 2)) %>%
-  left_join(ball_pos,by = c("game_str","play_id","timestamp")) %>%
-  group_by(CatchPlayIndex) %>% 
-  mutate(player_position = min(player_position)) %>% 
-  #join player pos data
-  left_join(player_pos, by = c("game_str", "play_id", "timestamp", "player_position")) %>% 
-  filter(!is.na(field_x), !is.na(field_y)) 
-
-View(x)
-View(player_pos)
-
-#recreate plots for check, join player pos first
-install.packages("sportyR")
-
-#plot where catches were made  
-ggplot(x, aes(group = CatchPlayIndex, x = field_x, y = field_y))
-sportyR::geom_baseball(league = "mlb") +
-  geom_point(x %>% filter(event_code == 2), 
-             mapping = aes(group = CatchPlayIndex, x = field_x, y = field_y, color = player_position),show.legend = F) +
-  scale_x_continuous(limits = c(-250,250)) +
-  scale_y_continuous(limits = c(-50,450))
-
-#plot where fielders started on catches
-ggplot(x, aes(group = CatchPlayIndex, x = field_x, y = field_y))
-sportyR::geom_baseball(league = "mlb") +
-  geom_point(x %>% filter(event_code == 4), 
-             mapping = aes(group = CatchPlayIndex, x = field_x, y = field_y, color = player_position),show.legend = F) +
-  scale_x_continuous(limits = c(-250,250)) +
-  scale_y_continuous(limits = c(-50,450))
 
 #ben's dataset of all balls to outfielders
 of_events <- read_csv("model-train-data.csv")
