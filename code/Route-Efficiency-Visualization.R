@@ -135,3 +135,16 @@ ggplot(re_oaa_teams, aes(x = oaa_per, y = route_eff)) +
   scale_color_viridis() +
   geom_smooth(method = "lm", linetype = "dashed", se = FALSE, alpha = 0.6) +
   geom_point(aes(color = plays)) 
+
+
+#route eff distribution
+re_dis <- left_join(of_events, route_eff, by = c("game_str", "play_id", "next_player" = "player_position"))
+
+ggplot(re_dis, aes(x = route_efficiency)) +
+  geom_histogram() +
+  theme_bw() +
+  labs(
+    x = "Route Efficiency",
+    y = "Count",
+    title = "Route Efficiency's Distribution"
+  )
